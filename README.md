@@ -1,5 +1,7 @@
 # GeoIT3D_to_glTF
 
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/BaterHub/GeoIT3D_to_glTF/blob/main/GeoIT3D_to_glTF_Colab.ipynb)
+
 Conversione di modelli geologici 3D GeoIT3D (ISPRA) in file glTF/GLB pronti per la pubblicazione su web viewer (es. IPSES). Il comando principale `geoit3d-to-gltf` prende in input uno ZIP prodotto dal workflow GeoIT3D e genera un `model.glb` con metadati incorporati e le tabelle CSV di attributi a lato.
 
 ## Caratteristiche
