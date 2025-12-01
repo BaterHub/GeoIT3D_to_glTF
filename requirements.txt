@@ -1,0 +1,5 @@
+trimesh
+numpy
+pandas
+click
+openpyxl

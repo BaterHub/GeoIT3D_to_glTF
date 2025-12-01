@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GeoIT3D_to_glTF"
+version = "0.1.0"
+description = "Conversione di modelli geologici 3D GeoIT3D (ISPRA) in glTF/GLB per visualizzatori web (es. IPSES/INGV)."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "ISPRA - Servizio Geologico d’Italia" }
+]
+keywords = ["geology", "3D model", "glTF", "GeoIT3D", "ISPRA"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "trimesh",
+  "numpy",
+  "pandas",
+  "click",
+  "openpyxl",
+]
+
+[project.urls]
+Homepage = "https://github.com/BaterHub/GeoIT3D_to_glTF"
+Source = "https://github.com/BaterHub/GeoIT3D_to_glTF"
+Issues = "https://github.com/BaterHub/GeoIT3D_to_glTF/issues"
+
+[project.scripts]
+geoit3d-to-gltf = "GeoIT3D_to_glTF.convert_zip_to_glb:main"
