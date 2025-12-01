@@ -165,7 +165,8 @@ def export_scene_to_glb(
 
     # 5. salviamo come GLB
     output_glb_path.parent.mkdir(parents=True, exist_ok=True)
-    gltf_export.save_glb(gltf_dict, output_glb_path.as_posix())
+    glb_bytes = gltf_export.export_glb(gltf_dict)
+    output_glb_path.write_bytes(glb_bytes)
 
 
 # ----------------------------------------------------------------------
