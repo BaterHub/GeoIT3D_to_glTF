@@ -23,6 +23,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 import trimesh
+import csv
 
 
 # ----------------------------------------------------------------------
@@ -211,6 +212,43 @@ def load_attributes(model_dir: Path) -> Dict[str, Dict[str, Dict]]:
 
 
 # ----------------------------------------------------------------------
+# Palette colori (CMYK -> RGB)
+# ----------------------------------------------------------------------
+
+
+def _load_color_scheme(csv_path: Optional[Path] = None) -> Dict[int, Tuple[int, int, int]]:
+    """
+    Carica la palette da color_scheme.csv (colonne: color, CMYK_code, RGB_code)
+    e restituisce un mapping {color_code: (r, g, b)}.
+    """
+    if csv_path is None:
+        csv_path = Path(__file__).resolve().parents[2] / "examples" / "color_scheme.csv"
+
+    palette: Dict[int, Tuple[int, int, int]] = {}
+    if not csv_path.exists():
+        return palette
+
+    with csv_path.open("r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            try:
+                code = int(str(row.get("color", "")).strip())
+                rgb_hex = str(row.get("RGB_code", "")).strip()
+                if rgb_hex.startswith("#"):
+                    rgb_hex = rgb_hex[1:]
+                if len(rgb_hex) != 6:
+                    continue
+                r = int(rgb_hex[0:2], 16)
+                g = int(rgb_hex[2:4], 16)
+                b = int(rgb_hex[4:6], 16)
+                palette[code] = (r, g, b)
+            except Exception:
+                continue
+
+    return palette
+
+
+# ----------------------------------------------------------------------
 # Costruzione della scena completa (DEM + horizons + faults + units)
 # ----------------------------------------------------------------------
 
@@ -239,6 +277,7 @@ def build_full_scene(model_dir: Path) -> Tuple[trimesh.Scene, Dict[str, Dict]]:
 
     # 1. Carico attributi
     attrs = load_attributes(model_dir)
+    palette = _load_color_scheme()
 
     # 2. Parsing TSurf
     surfaces: List[SurfaceGeometry] = []
@@ -264,15 +303,19 @@ def build_full_scene(model_dir: Path) -> Tuple[trimesh.Scene, Dict[str, Dict]]:
         if surf.group == "FAULT":
             surf.attributes = attrs["FAULT"].get(surf.id, {})
             nice_name = str(surf.attributes.get("name_fault", surf.id))
+            color_code = surf.attributes.get("color_fault")
         elif surf.group == "HORIZON":
             surf.attributes = attrs["HORIZON"].get(surf.id, {})
             nice_name = str(surf.attributes.get("name_surface", surf.id))
+            color_code = surf.attributes.get("color_surface")
         elif surf.group == "UNIT":
             surf.attributes = attrs["UNIT"].get(surf.id, {})
             nice_name = str(surf.attributes.get("name_unit", surf.id))
+            color_code = surf.attributes.get("color_unit")
         else:
             # DEM: nessuna tabella dedicata
             nice_name = surf.id
+            color_code = None
 
         # Aggiorno node_name con un nome più parlante
         surf.node_name = f"{surf.group}_{nice_name}_{surf.id}"
@@ -284,6 +327,21 @@ def build_full_scene(model_dir: Path) -> Tuple[trimesh.Scene, Dict[str, Dict]]:
                 faces=surf.faces,
                 process=False,
             )
+
+            # Applico colore se disponibile nella palette
+            rgba = None
+            try:
+                if color_code is not None:
+                    code_int = int(str(color_code))
+                    if code_int in palette:
+                        r, g, b = palette[code_int]
+                        rgba = [r, g, b, 255]
+            except Exception:
+                rgba = None
+
+            if rgba is not None:
+                mesh.visual.face_colors = np.tile(np.array(rgba, dtype=np.uint8), (len(mesh.faces), 1))
+
         else:
             # Se non ci sono facce, salto (oppure potresti gestirla come point cloud)
             continue
