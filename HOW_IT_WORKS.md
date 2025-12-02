@@ -22,8 +22,8 @@ Il flusso converte uno ZIP GeoIT3D in un `<nome_zip>.glb` con metadati incorpora
    - `export_scene_to_glb`: esporta la scena con `trimesh.exchange.gltf`, garantisce `asset.version=2.0`, aggiunge `asset.extras` e un `model_code` in `scenes[0].extras` se disponibile, salva `<nome_zip>.glb` (inserendo manualmente l'extras nel chunk JSON per compatibilità).
    - Scrive anche `<nome_zip>_metadata.json` (copia di `asset.extras`).
 
-5. **Copia tabelle di attributi**  
-   - `copy_attribute_tables`: copia le principali CSV nella cartella di output per consultazione esterna.
+5. **(Opzionale) Copia tabelle di attributi**  
+   - La copia delle CSV è disabilitata di default; le tabelle restano nello ZIP di origine.
 
 6. **Pulizia**  
    - La cartella temporanea viene eliminata salvo l'uso di `--keep-temp`.

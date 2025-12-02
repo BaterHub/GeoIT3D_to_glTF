@@ -305,8 +305,8 @@ def main(
         with meta_json_path.open("w", encoding="utf-8") as f:
             json.dump(asset_extras, f, indent=2, ensure_ascii=False)
 
-        # 8. Copia tabelle CSV di attributi
-        copy_attribute_tables(tmp_dir, output_dir)
+        # 8. Copia tabelle CSV di attributi (disabilitato su richiesta: non serve esportarle)
+        # copy_attribute_tables(tmp_dir, output_dir)
 
         click.echo(f"[OK] Conversione completata.")
         click.echo(f"     GLB: {glb_path}")

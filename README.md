@@ -2,7 +2,7 @@
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/BaterHub/GeoIT3D_to_glTF/blob/main/GeoIT3D_to_GLTF.ipynb)
 
-Conversione di modelli geologici 3D GeoIT3D (ISPRA) in file glTF/GLB pronti per la pubblicazione su web viewer (es. IPSES). Il comando principale `geoit3d-to-gltf` prende in input uno ZIP prodotto dal workflow GeoIT3D e genera un `<nome_zip>.glb` con metadati incorporati, il relativo `<nome_zip>_metadata.json` e le tabelle CSV di attributi a lato.
+Conversione di modelli geologici 3D GeoIT3D (ISPRA) in file glTF/GLB pronti per la pubblicazione su web viewer (es. IPSES). Il comando principale `geoit3d-to-gltf` prende in input uno ZIP prodotto dal workflow GeoIT3D e genera un `<nome_zip>.glb` con metadati incorporati e il relativo `<nome_zip>_metadata.json`.
 
 ## Caratteristiche
 - Estrazione automatica di uno ZIP GeoIT3D in una cartella temporanea.
@@ -10,7 +10,7 @@ Conversione di modelli geologici 3D GeoIT3D (ISPRA) in file glTF/GLB pronti per 
 - Collegamento delle superfici alle tabelle di attributi CSV, se presenti.
 - Inserimento dei metadati (descriptor.json + foglio ISO/AGID opzionale) dentro `asset.extras` del glTF.
 - Applica i colori ai mesh usando i codici `color_fault/color_surface/color_unit` mappati tramite `examples/color_scheme.csv`.
-- Esporta `<nome_zip>.glb` e `<nome_zip>_metadata.json` esterno; copia le principali CSV di attributi.
+- Esporta `<nome_zip>.glb` e `<nome_zip>_metadata.json` esterno (le CSV non vengono copiate in output).
 
 ## Requisiti
 - Python 3.10+
@@ -32,14 +32,13 @@ geoit3d-to-gltf examples/F184_Mirandola.zip \
 
 Argomenti/opzioni:
 - `zip_path`: ZIP del modello GeoIT3D (contenente `descriptor.json`, file `.ts`, CSV, ecc.).
-- `--output-dir/-o`: cartella dove salvare `<nome_zip>.glb`, `<nome_zip>_metadata.json` e le CSV copiate.
+- `--output-dir/-o`: cartella dove salvare `<nome_zip>.glb` e `<nome_zip>_metadata.json`.
 - `--iso-sheet`: file Excel con foglio ISO/AGID (opzionale); se assente, i metadati ISO non vengono aggiunti.
 - `--keep-temp`: conserva la cartella temporanea di estrazione per debug.
 
 Output:
 - `<nome_zip>.glb`: scena glTF binaria con `asset.extras` popolato.
 - `<nome_zip>_metadata.json`: copia dei metadati in un JSON esterno.
-- CSV di attributi (fault/horizon/unit) copiate se presenti.
 
 ## Struttura attesa dello ZIP
 ```
