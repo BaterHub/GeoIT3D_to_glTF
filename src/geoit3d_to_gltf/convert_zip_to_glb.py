@@ -214,6 +214,56 @@ def _inject_asset_extras_in_glb(glb_bytes: bytes, asset_extras: Dict, model_code
             gltf_dict["scenes"][0].setdefault("extras", {})
             gltf_dict["scenes"][0]["extras"]["model_code"] = model_code
 
+    # Imposta target dei bufferView per eliminare warning dei validator
+    def _set_buffer_view_targets(gltf: Dict) -> None:
+        buffer_views = gltf.get("bufferViews")
+        accessors = gltf.get("accessors")
+        meshes = gltf.get("meshes")
+        if not isinstance(buffer_views, list) or not isinstance(accessors, list) or not isinstance(meshes, list):
+            return
+
+        index_accessor_ids = set()
+        attribute_accessor_ids = set()
+
+        for mesh in meshes:
+            if not isinstance(mesh, dict):
+                continue
+            for prim in mesh.get("primitives", []):
+                if not isinstance(prim, dict):
+                    continue
+                if "indices" in prim:
+                    index_accessor_ids.add(prim["indices"])
+                for attr_id in prim.get("attributes", {}).values():
+                    attribute_accessor_ids.add(attr_id)
+
+        # bufferView per accessors di indici -> ELEMENT_ARRAY_BUFFER (34963)
+        for acc_id in index_accessor_ids:
+            if not (isinstance(acc_id, int) and 0 <= acc_id < len(accessors)):
+                continue
+            acc = accessors[acc_id]
+            if not isinstance(acc, dict):
+                continue
+            bv_id = acc.get("bufferView")
+            if isinstance(bv_id, int) and 0 <= bv_id < len(buffer_views):
+                bv = buffer_views[bv_id]
+                if isinstance(bv, dict) and "target" not in bv:
+                    bv["target"] = 34963
+
+        # bufferView per accessors di attributi -> ARRAY_BUFFER (34962)
+        for acc_id in attribute_accessor_ids:
+            if not (isinstance(acc_id, int) and 0 <= acc_id < len(accessors)):
+                continue
+            acc = accessors[acc_id]
+            if not isinstance(acc, dict):
+                continue
+            bv_id = acc.get("bufferView")
+            if isinstance(bv_id, int) and 0 <= bv_id < len(buffer_views):
+                bv = buffer_views[bv_id]
+                if isinstance(bv, dict) and "target" not in bv:
+                    bv["target"] = 34962
+
+    _set_buffer_view_targets(gltf_dict)
+
     new_json = json.dumps(gltf_dict, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     # Pad a multipli di 4 byte con spazi (spec GLB)
     pad_len = (-len(new_json)) % 4
