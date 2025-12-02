@@ -39,8 +39,3 @@ Il flusso converte uno ZIP GeoIT3D in un `<nome_zip>.glb` con metadati incorpora
 ## Dati in ingresso attesi
 - ZIP con `descriptor.json`, file `.ts` (DEM/HORIZON/FAULT/UNIT), tabelle CSV di attributi, eventuali CSV derivate/kinematics.
 - Facoltativo: Excel ISO/AGID con foglio `ISO_AGID_format`.
-
-## Estensioni possibili
-- Aggiungere una fase di validazione reale in `validation.py`.
-- Gestire strutture di foglio ISO/AGID alternative con mapping configurabile.
-- Supportare ulteriori formati di input (es. mesh singole) o esportazioni multiple (glTF + tileset 3D).
