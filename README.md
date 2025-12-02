@@ -10,7 +10,7 @@ Conversione di modelli geologici 3D GeoIT3D (ISPRA) in file glTF/GLB pronti per 
 - Collegamento delle superfici alle tabelle di attributi CSV, se presenti.
 - Inserimento dei metadati (descriptor.json + foglio ISO/AGID opzionale) dentro `asset.extras` del glTF.
 - Applica i colori ai mesh usando i codici `color_fault/color_surface/color_unit` mappati tramite `examples/color_scheme.csv`.
-- Esporta `<nome_zip>.glb` e `<nome_zip>_metadata.json` esterno (le CSV non vengono copiate in output).
+- Esporta `<nome_zip>.glb` e `<nome_zip>_metadata.json` esterno.
 
 ## Requisiti
 - Python 3.10+
