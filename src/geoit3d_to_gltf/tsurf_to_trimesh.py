@@ -169,6 +169,16 @@ def _read_csv_if_exists(path: Path) -> Optional[pd.DataFrame]:
         return pd.read_csv(path)
     return None
 
+def _merge_dicts(base: Dict, extra: Dict) -> Dict:
+    """
+    Restituisce una copia di base con campi extra aggiunti solo se non presenti.
+    """
+    merged = dict(base)
+    for k, v in extra.items():
+        if k not in merged:
+            merged[k] = v
+    return merged
+
 
 def load_attributes(model_dir: Path) -> Dict[str, Dict[str, Dict]]:
     """
@@ -189,19 +199,43 @@ def load_attributes(model_dir: Path) -> Dict[str, Dict[str, Dict]]:
         "UNIT": {},
     }
 
-    # Faults
+    # Faults - main
     fault_attr = _read_csv_if_exists(model_dir / "main_fault_attributes.csv")
     if fault_attr is not None and "id" in fault_attr.columns:
         for _, row in fault_attr.iterrows():
             sid = str(row["id"])
             attrs["FAULT"][sid] = row.to_dict()
 
-    # Horizons
+    # Faults - derived
+    fault_der_attr = _read_csv_if_exists(model_dir / "main_fault_derived_attributes.csv")
+    if fault_der_attr is not None and "id" in fault_der_attr.columns:
+        for _, row in fault_der_attr.iterrows():
+            sid = str(row["id"])
+            merged = attrs["FAULT"].get(sid, {})
+            attrs["FAULT"][sid] = _merge_dicts(merged, row.to_dict())
+
+    # Faults - kinematics
+    fault_kin_attr = _read_csv_if_exists(model_dir / "main_fault_kinematics_attributes.csv")
+    if fault_kin_attr is not None and "id" in fault_kin_attr.columns:
+        for _, row in fault_kin_attr.iterrows():
+            sid = str(row["id"])
+            merged = attrs["FAULT"].get(sid, {})
+            attrs["FAULT"][sid] = _merge_dicts(merged, row.to_dict())
+
+    # Horizons - main
     horiz_attr = _read_csv_if_exists(model_dir / "main_horizon_attributes.csv")
     if horiz_attr is not None and "id" in horiz_attr.columns:
         for _, row in horiz_attr.iterrows():
             sid = str(row["id"])
             attrs["HORIZON"][sid] = row.to_dict()
+
+    # Horizons - derived
+    horiz_der_attr = _read_csv_if_exists(model_dir / "main_horizon_derived_attributes.csv")
+    if horiz_der_attr is not None and "id" in horiz_der_attr.columns:
+        for _, row in horiz_der_attr.iterrows():
+            sid = str(row["id"])
+            merged = attrs["HORIZON"].get(sid, {})
+            attrs["HORIZON"][sid] = _merge_dicts(merged, row.to_dict())
 
     # Units
     unit_attr = _read_csv_if_exists(model_dir / "main_unit_attributes.csv")
@@ -431,8 +465,8 @@ def build_full_scene(model_dir: Path) -> Tuple[trimesh.Scene, Dict[str, Dict]]:
         # Applico mapping dei codici a etichette/URL (mantiene i valori non mappati)
         surf.attributes = _apply_code_mapping(raw_attrs, code_mapping, codelists)
 
-        # Aggiorno node_name con un nome più parlante
-        surf.node_name = f"{surf.group}_{nice_name}_{surf.id}"
+        # Aggiorno node_name solo con gruppo e id (richiesta)
+        surf.node_name = f"{surf.group}_{surf.id}"
 
         # Creo la mesh
         if surf.faces is not None and len(surf.faces) > 0:
