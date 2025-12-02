@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import struct
 import tempfile
 import zipfile
 from pathlib import Path
@@ -163,9 +164,70 @@ def export_scene_to_glb(
         if model_code is not None:
             gltf_dict["scenes"][0]["extras"]["model_code"] = model_code
 
-    # 5. salviamo come GLB usando il dizionario arricchito
+    # 5. salviamo come GLB: la versione di trimesh in Colab non espone save_glb,
+    #    quindi esportiamo i bytes e patchiamo il chunk JSON con asset.extras.
     output_glb_path.parent.mkdir(parents=True, exist_ok=True)
-    gltf_export.save_glb(gltf_dict, output_glb_path.as_posix())
+    glb_bytes = gltf_export.export_glb(scene, include_normals=True)
+
+    patched_glb = _inject_asset_extras_in_glb(
+        glb_bytes=glb_bytes,
+        asset_extras=asset_extras,
+        model_code=model_code,
+    )
+    output_glb_path.write_bytes(patched_glb)
+
+
+def _inject_asset_extras_in_glb(glb_bytes: bytes, asset_extras: Dict, model_code: Optional[str]) -> bytes:
+    """
+    Inserisce asset.extras (e opzionale model_code in scenes[0].extras) nel GLB già esportato.
+
+    Funziona patchando il chunk JSON del GLB senza dipendenze aggiuntive.
+    """
+    if len(glb_bytes) < 20:
+        return glb_bytes
+
+    magic, version, total_length = struct.unpack_from("<4sII", glb_bytes, 0)
+    if magic != b"glTF":
+        return glb_bytes
+
+    json_chunk_len = struct.unpack_from("<I", glb_bytes, 12)[0]
+    json_chunk_type = struct.unpack_from("<I", glb_bytes, 16)[0]
+    # 0x4E4F534A == b"JSON"
+    if json_chunk_type != 0x4E4F534A:
+        return glb_bytes
+
+    json_start = 20
+    json_end = json_start + json_chunk_len
+    if json_end > len(glb_bytes):
+        return glb_bytes
+
+    json_text = glb_bytes[json_start:json_end].decode("utf-8")
+    gltf_dict = json.loads(json_text)
+
+    # Inserisco extras
+    gltf_dict.setdefault("asset", {})
+    gltf_dict["asset"].setdefault("version", "2.0")
+    gltf_dict["asset"]["extras"] = asset_extras
+
+    if model_code is not None:
+        if gltf_dict.get("scenes") and isinstance(gltf_dict["scenes"], list) and gltf_dict["scenes"]:
+            gltf_dict["scenes"][0].setdefault("extras", {})
+            gltf_dict["scenes"][0]["extras"]["model_code"] = model_code
+
+    new_json = json.dumps(gltf_dict, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    # Pad a multipli di 4 byte con spazi (spec GLB)
+    pad_len = (-len(new_json)) % 4
+    new_json_padded = new_json + (b" " * pad_len)
+    new_json_len = len(new_json_padded)
+
+    # Ricompongo GLB: header + chunk JSON + chunk binario originale
+    bin_part = glb_bytes[json_end:]
+    new_total_length = 12 + 8 + new_json_len + len(bin_part)
+
+    header = struct.pack("<4sII", b"glTF", 2, new_total_length)
+    json_header = struct.pack("<II", new_json_len, 0x4E4F534A)
+
+    return header + json_header + new_json_padded + bin_part
 
 
 # ----------------------------------------------------------------------
