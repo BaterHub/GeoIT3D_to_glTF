@@ -1,6 +1,6 @@
 # Come funziona
 
-Il flusso converte uno ZIP GeoIT3D in un `model.glb` con metadati incorporati. I passaggi principali sono nel comando `geoit3d-to-gltf` (`src/geoit3d_to_gltf/convert_zip_to_glb.py`):
+Il flusso converte uno ZIP GeoIT3D in un `<nome_zip>.glb` con metadati incorporati. I passaggi principali sono nel comando `geoit3d-to-gltf` (`src/geoit3d_to_gltf/convert_zip_to_glb.py`):
 
 1. **Estrazione ZIP**  
    - `extract_zip_to_temp`: estrae lo ZIP in una cartella temporanea.
@@ -14,12 +14,13 @@ Il flusso converte uno ZIP GeoIT3D in un `model.glb` con metadati incorporati. I
    - `build_full_scene` (`tsurf_to_trimesh.py`):
      - Legge `dem.ts`, `horizons.ts`, `faults.ts`, `units.ts` se presenti.
      - `parse_gocad_tsurf_file`: estrae vertici/facce per ogni superficie, supportando file multisuperficie.
-     - `load_attributes`: associa gli ID superficie alle tabelle CSV (`main_fault_attributes.csv`, `main_horizon_attributes.csv`, `main_unit_attributes.csv`).
-     - Crea una `trimesh.Scene`, aggiunge i mesh e costruisce `surfaces_metadata` (gruppo, nome nodo, attributi).
+   - `load_attributes`: associa gli ID superficie alle tabelle CSV (`main_fault_attributes.csv`, `main_horizon_attributes.csv`, `main_unit_attributes.csv`).
+   - `_load_color_scheme`: carica la palette da `examples/color_scheme.csv` e mappa i codici `color_fault/color_surface/color_unit` su RGB.
+   - Crea una `trimesh.Scene`, aggiunge i mesh colorandoli se la palette contiene il codice, e costruisce `surfaces_metadata` (gruppo, nome nodo, attributi).
 
 4. **Export glTF/GLB**  
-   - `export_scene_to_glb`: esporta la scena con `trimesh.exchange.gltf`, garantisce `asset.version=2.0`, aggiunge `asset.extras` e un `model_code` in `scenes[0].extras` se disponibile, salva `model.glb`.
-   - Scrive anche `model_metadata.json` (copia di `asset.extras`).
+   - `export_scene_to_glb`: esporta la scena con `trimesh.exchange.gltf`, garantisce `asset.version=2.0`, aggiunge `asset.extras` e un `model_code` in `scenes[0].extras` se disponibile, salva `<nome_zip>.glb` (inserendo manualmente l'extras nel chunk JSON per compatibilità).
+   - Scrive anche `<nome_zip>_metadata.json` (copia di `asset.extras`).
 
 5. **Copia tabelle di attributi**  
    - `copy_attribute_tables`: copia le principali CSV nella cartella di output per consultazione esterna.
