@@ -265,7 +265,7 @@ def _inject_asset_extras_in_glb(glb_bytes: bytes, asset_extras: Dict, model_code
 
     _set_buffer_view_targets(gltf_dict)
 
-    new_json = json.dumps(gltf_dict, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    new_json = json.dumps(gltf_dict, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
     # Pad a multipli di 4 byte con spazi (spec GLB)
     pad_len = (-len(new_json)) % 4
     new_json_padded = new_json + (b" " * pad_len)
@@ -354,7 +354,7 @@ def main(
         # 7. Metadati JSON esterno
         meta_json_path = output_dir / f"{base_name}_metadata.json"
         with meta_json_path.open("w", encoding="utf-8") as f:
-            json.dump(asset_extras, f, indent=2, ensure_ascii=False)
+            json.dump(asset_extras, f, indent=2, ensure_ascii=False, allow_nan=False)
 
         # 8. Copia tabelle CSV di attributi (disabilitato su richiesta: non serve esportarle)
         # copy_attribute_tables(tmp_dir, output_dir)

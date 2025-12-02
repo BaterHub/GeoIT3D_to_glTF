@@ -17,6 +17,7 @@ Questo modulo:
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -178,6 +179,35 @@ def _merge_dicts(base: Dict, extra: Dict) -> Dict:
         if k not in merged:
             merged[k] = v
     return merged
+
+
+def _sanitize_values(obj):
+    """
+    Converte NaN/inf/NA in None (ricorsivo su dict/list).
+    """
+    if isinstance(obj, dict):
+        return {k: _sanitize_values(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_sanitize_values(v) for v in obj]
+    try:
+        # Gestisce numpy float/bool/int
+        if isinstance(obj, (np.floating, float)):
+            if math.isnan(obj) or math.isinf(obj):
+                return None
+            return float(obj)
+        if isinstance(obj, (np.integer, int)):
+            return int(obj)
+        if isinstance(obj, (np.bool_, bool)):
+            return bool(obj)
+    except Exception:
+        pass
+    # pandas NA/NaT
+    try:
+        if pd.isna(obj):
+            return None
+    except Exception:
+        pass
+    return obj
 
 
 def load_attributes(model_dir: Path) -> Dict[str, Dict[str, Dict]]:
@@ -461,6 +491,9 @@ def build_full_scene(model_dir: Path) -> Tuple[trimesh.Scene, Dict[str, Dict]]:
             raw_attrs = {}
             nice_name = surf.id
             color_code = None
+
+        # Ripulisce NaN/inf da attributi
+        raw_attrs = _sanitize_values(raw_attrs)
 
         # Applico mapping dei codici a etichette/URL (mantiene i valori non mappati)
         surf.attributes = _apply_code_mapping(raw_attrs, code_mapping, codelists)
