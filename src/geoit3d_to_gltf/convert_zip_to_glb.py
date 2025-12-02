@@ -296,11 +296,12 @@ def main(
 
         # 6. Esportazione GLB
         output_dir.mkdir(parents=True, exist_ok=True)
-        glb_path = output_dir / "model.glb"
+        base_name = zip_path.stem
+        glb_path = output_dir / f"{base_name}.glb"
         export_scene_to_glb(scene, asset_extras, glb_path)
 
         # 7. Metadati JSON esterno
-        meta_json_path = output_dir / "model_metadata.json"
+        meta_json_path = output_dir / f"{base_name}_metadata.json"
         with meta_json_path.open("w", encoding="utf-8") as f:
             json.dump(asset_extras, f, indent=2, ensure_ascii=False)
 
