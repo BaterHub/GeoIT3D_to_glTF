@@ -145,7 +145,8 @@ def export_scene_to_glb(
     con i metadati forniti.
     """
     # 1. otteniamo il dict glTF dalla scene
-    gltf_dict = gltf_export.export_gltf(scene, include_normals=True)
+    # export senza normali per evitare vettori zero e warning validator
+    gltf_dict = gltf_export.export_gltf(scene, include_normals=False)
 
     # 2. assicuriamoci che esista la sezione "asset"
     if "asset" not in gltf_dict:
@@ -167,7 +168,7 @@ def export_scene_to_glb(
     # 5. salviamo come GLB: la versione di trimesh in Colab non espone save_glb,
     #    quindi esportiamo i bytes e patchiamo il chunk JSON con asset.extras.
     output_glb_path.parent.mkdir(parents=True, exist_ok=True)
-    glb_bytes = gltf_export.export_glb(scene, include_normals=True)
+    glb_bytes = gltf_export.export_glb(scene, include_normals=False)
 
     patched_glb = _inject_asset_extras_in_glb(
         glb_bytes=glb_bytes,
