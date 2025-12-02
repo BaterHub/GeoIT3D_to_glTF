@@ -2,9 +2,9 @@
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/BaterHub/GeoIT3D_to_glTF/blob/main/GeoIT3D_to_GLTF.ipynb)
 
-Converti uno ZIP GeoIT3D in un glTF/GLB con metadati incorporati, colori da codici CSV e mapping dei domini (codelist) a etichette/URL. Output: `<nome_zip>.glb` + `<nome_zip>_metadata.json`.
+Converte uno ZIP GeoIT3D in un glTF/GLB con metadati incorporati, colori da codici CSV e mapping dei domini (codelist) a etichette/URL. Output: `<nome_zip>.glb` + `<nome_zip>_metadata.json`.
 
-## Cosa fa
+## Workflow
 - Estrae lo ZIP GeoIT3D e legge `descriptor.json` + ISO/AGID (opzionale).
 - Parsea i TSurf (`dem.ts`, `horizons.ts`, `faults.ts`, `units.ts`) e costruisce la scena.
 - Unisce attributi principali/derived/kinematics (fault/horizon/unit) senza duplicati.
@@ -35,7 +35,7 @@ Output in `output/<nome_zip>/`:
 - `<nome_zip>.glb` con `asset.extras`.
 - `<nome_zip>_metadata.json` (stesso contenuto dei metadati).
 
-## Colab (anche se non sai Python)
+## Colab
 1. Clicca il badge Colab qui sopra.
 2. Menu `Runtime` → `Restart and run all` (oppure esegui le celle con ▶️).
 3. Quando richiesto, carica il tuo ZIP GeoIT3D (obbligatorio) e l’ISO `.xlsx` se ce l’hai.
