@@ -24,6 +24,8 @@ import numpy as np
 import pandas as pd
 import trimesh
 import csv
+import zipfile
+from io import TextIOWrapper
 
 
 # ----------------------------------------------------------------------
@@ -249,6 +251,112 @@ def _load_color_scheme(csv_path: Optional[Path] = None) -> Dict[int, Tuple[int, 
 
 
 # ----------------------------------------------------------------------
+# Mapping codici -> etichette/URL tramite codelist
+# ----------------------------------------------------------------------
+
+
+def _load_code_mapping(csv_path: Optional[Path] = None) -> Dict[str, str]:
+    """
+    Legge code_mapping.csv e restituisce un dizionario
+    { field_name -> source_file }.
+    """
+    if csv_path is None:
+        csv_path = Path(__file__).resolve().parents[2] / "examples" / "code_mapping.csv"
+
+    mapping: Dict[str, str] = {}
+    if not csv_path.exists():
+        return mapping
+
+    with csv_path.open("r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            field = (row.get("field_name") or "").strip()
+            src = (row.get("source_file") or "").strip()
+            if field and src:
+                mapping[field] = src
+    return mapping
+
+
+def _load_codelists(source_files: List[str], zip_path: Optional[Path] = None) -> Dict[str, Dict[str, Dict[str, Optional[str]]]]:
+    """
+    Carica le codelist richieste da un archivio zip.
+    Ritorna: {source_file: {code: {"label": ..., "url": ...}}}
+    """
+    if zip_path is None:
+        zip_path = Path(__file__).resolve().parents[2] / "examples" / "codelist.zip"
+
+    codelists: Dict[str, Dict[str, Dict[str, Optional[str]]]] = {}
+    if not zip_path.exists():
+        return codelists
+
+    needed = {src for src in source_files if src}
+    if not needed:
+        return codelists
+
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        for src in needed:
+            inner_path = f"codelist/{src}"
+            if inner_path not in zf.namelist():
+                continue
+            with zf.open(inner_path, "r") as fh:
+                reader = csv.DictReader(TextIOWrapper(fh, encoding="utf-8"))
+                code_dict: Dict[str, Dict[str, Optional[str]]] = {}
+                for row in reader:
+                    # Trova le colonne code/label/url in maniera robusta
+                    keys = {k.lower(): k for k in row.keys() if k}
+                    code_key = keys.get("code")
+                    url_key = None
+                    for cand in ("url", "uri", "link"):
+                        if cand in keys:
+                            url_key = keys[cand]
+                            break
+                    # Prima scelta label è "type", altrimenti prima colonna diversa da code/url
+                    label_key = None
+                    for cand in ("type", "label", "description", "name"):
+                        if cand in keys:
+                            label_key = keys[cand]
+                            break
+                    if not label_key:
+                        for k in row.keys():
+                            lk = k.lower()
+                            if lk not in ("code", "url", "uri", "link"):
+                                label_key = k
+                                break
+
+                    if not code_key:
+                        continue
+
+                    code_val = (row.get(code_key) or "").strip()
+                    if not code_val:
+                        continue
+                    label_val = (row.get(label_key) or "").strip() if label_key else None
+                    url_val = (row.get(url_key) or "").strip() if url_key else None
+                    code_dict[code_val] = {"label": label_val or None, "url": url_val or None}
+
+                codelists[src] = code_dict
+
+    return codelists
+
+
+def _apply_code_mapping(attrs: Dict[str, object], code_mapping: Dict[str, str], codelists: Dict[str, Dict[str, Dict[str, Optional[str]]]]) -> Dict[str, object]:
+    """
+    Sostituisce i codici con dizionari {code, label, url} se trovati nella codelist.
+    Mantiene i valori originali se non c'è corrispondenza.
+    """
+    mapped: Dict[str, object] = {}
+    for key, val in attrs.items():
+        src_file = code_mapping.get(key)
+        if src_file and val is not None:
+            code_str = str(val).strip()
+            info = codelists.get(src_file, {}).get(code_str)
+            if info:
+                mapped[key] = {"code": code_str, "label": info.get("label"), "url": info.get("url")}
+                continue
+        mapped[key] = val
+    return mapped
+
+
+# ----------------------------------------------------------------------
 # Costruzione della scena completa (DEM + horizons + faults + units)
 # ----------------------------------------------------------------------
 
@@ -278,6 +386,8 @@ def build_full_scene(model_dir: Path) -> Tuple[trimesh.Scene, Dict[str, Dict]]:
     # 1. Carico attributi
     attrs = load_attributes(model_dir)
     palette = _load_color_scheme()
+    code_mapping = _load_code_mapping()
+    codelists = _load_codelists(list(code_mapping.values()))
 
     # 2. Parsing TSurf
     surfaces: List[SurfaceGeometry] = []
@@ -301,21 +411,25 @@ def build_full_scene(model_dir: Path) -> Tuple[trimesh.Scene, Dict[str, Dict]]:
     for surf in surfaces:
         # Collega attributi se presenti
         if surf.group == "FAULT":
-            surf.attributes = attrs["FAULT"].get(surf.id, {})
-            nice_name = str(surf.attributes.get("name_fault", surf.id))
-            color_code = surf.attributes.get("color_fault")
+            raw_attrs = attrs["FAULT"].get(surf.id, {})
+            nice_name = str(raw_attrs.get("name_fault", surf.id))
+            color_code = raw_attrs.get("color_fault")
         elif surf.group == "HORIZON":
-            surf.attributes = attrs["HORIZON"].get(surf.id, {})
-            nice_name = str(surf.attributes.get("name_surface", surf.id))
-            color_code = surf.attributes.get("color_surface")
+            raw_attrs = attrs["HORIZON"].get(surf.id, {})
+            nice_name = str(raw_attrs.get("name_surface", surf.id))
+            color_code = raw_attrs.get("color_surface")
         elif surf.group == "UNIT":
-            surf.attributes = attrs["UNIT"].get(surf.id, {})
-            nice_name = str(surf.attributes.get("name_unit", surf.id))
-            color_code = surf.attributes.get("color_unit")
+            raw_attrs = attrs["UNIT"].get(surf.id, {})
+            nice_name = str(raw_attrs.get("name_unit", surf.id))
+            color_code = raw_attrs.get("color_unit")
         else:
             # DEM: nessuna tabella dedicata
+            raw_attrs = {}
             nice_name = surf.id
             color_code = None
+
+        # Applico mapping dei codici a etichette/URL (mantiene i valori non mappati)
+        surf.attributes = _apply_code_mapping(raw_attrs, code_mapping, codelists)
 
         # Aggiorno node_name con un nome più parlante
         surf.node_name = f"{surf.group}_{nice_name}_{surf.id}"
