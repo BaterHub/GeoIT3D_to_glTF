@@ -25,6 +25,14 @@ Il flusso converte uno ZIP GeoIT3D in un `<nome_zip>.glb` con metadati incorpora
 5. **(Opzionale) Copia tabelle di attributi**  
    - La copia delle CSV è disabilitata di default; le tabelle restano nello ZIP di origine.
 
+## Usare il notebook (Colab) senza conoscere Python
+
+1. Clicca sul badge “Open in Colab” del README, si apre `GeoIT3D_to_GLTF.ipynb`.
+2. Menu `Runtime` → `Restart and run all` (oppure esegui le celle dall’alto con ▶️).
+3. Quando richiesto, carica il tuo ZIP GeoIT3D (obbligatorio) e, se disponibile, il file ISO/AGID `.xlsx` (opzionale).
+4. Il notebook clona il repo, installa il pacchetto in modalità sviluppo e lancia il comando di conversione.
+5. I risultati compaiono in `output/<nome_zip>/` dentro l’ambiente Colab: `<nome_zip>.glb` e `<nome_zip>_metadata.json`. Puoi scaricarli dalla sidebar (icona cartella) con click destro → Download.
+
 6. **Pulizia**  
    - La cartella temporanea viene eliminata salvo l'uso di `--keep-temp`.
 

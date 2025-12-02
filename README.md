@@ -40,6 +40,18 @@ Output:
 - `<nome_zip>.glb`: scena glTF binaria con `asset.extras` popolato.
 - `<nome_zip>_metadata.json`: copia dei metadati in un JSON esterno.
 
+## Uso del notebook (Colab) – anche se non sai Python
+
+1. Clicca sul badge “Open in Colab” in alto. Si apre `GeoIT3D_to_GLTF.ipynb`.
+2. Menu `Runtime` → `Restart and run all` (o esegui le celle in ordine con ▶️).
+3. Quando il notebook chiede l’upload, carica il tuo ZIP GeoIT3D (obbligatorio) e, se ce l’hai, il file ISO/AGID `.xlsx` (opzionale).
+4. Il notebook installa il pacchetto, converte lo ZIP e scrive i risultati in `output/<nome_zip>/`:
+   - `<nome_zip>.glb`
+   - `<nome_zip>_metadata.json`
+5. Scarica i file dalla sidebar di Colab (icona cartella) o con click destro → Download.
+
+Nota: non serve conoscere Python; basta seguire i passaggi e caricare i file richiesti.
+
 ## Struttura attesa dello ZIP
 ```
 descriptor.json
