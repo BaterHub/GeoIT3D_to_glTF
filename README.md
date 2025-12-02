@@ -2,55 +2,47 @@
 
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/BaterHub/GeoIT3D_to_glTF/blob/main/GeoIT3D_to_GLTF.ipynb)
 
-Conversione di modelli geologici 3D GeoIT3D (ISPRA) in file glTF/GLB pronti per la pubblicazione su web viewer (es. IPSES). Il comando principale `geoit3d-to-gltf` prende in input uno ZIP prodotto dal workflow GeoIT3D e genera un `<nome_zip>.glb` con metadati incorporati e il relativo `<nome_zip>_metadata.json`.
+Converti uno ZIP GeoIT3D in un glTF/GLB con metadati incorporati, colori da codici CSV e mapping dei domini (codelist) a etichette/URL. Output: `<nome_zip>.glb` + `<nome_zip>_metadata.json`.
 
-## Caratteristiche
-- Estrazione automatica di uno ZIP GeoIT3D in una cartella temporanea.
-- Parsing dei file GOCAD TSurf (`dem.ts`, `horizons.ts`, `faults.ts`, `units.ts`) e costruzione di una scena `trimesh.Scene`.
-- Collegamento delle superfici alle tabelle di attributi CSV, se presenti.
-- Inserimento dei metadati (descriptor.json + foglio ISO/AGID opzionale) dentro `asset.extras` del glTF.
-- Applica i colori ai mesh usando i codici `color_fault/color_surface/color_unit` mappati tramite `examples/color_scheme.csv`.
-- Esporta `<nome_zip>.glb` e `<nome_zip>_metadata.json` esterno.
-
-## Requisiti
-- Python 3.10+
-- Dipendenze principali: `trimesh`, `numpy`, `pandas`, `click`, `openpyxl` (installate automaticamente).
+## Cosa fa
+- Estrae lo ZIP GeoIT3D e legge `descriptor.json` + ISO/AGID (opzionale).
+- Parsea i TSurf (`dem.ts`, `horizons.ts`, `faults.ts`, `units.ts`) e costruisce la scena.
+- Unisce attributi principali/derived/kinematics (fault/horizon/unit) senza duplicati.
+- Mappa i codici a etichette/URL con `examples/codelist.zip` e `examples/code_mapping.csv`.
+- Applica colori dai codici `color_fault/color_surface/color_unit` usando `examples/color_scheme.csv`.
+- Scrive metadati in `asset.extras` del GLB e nel JSON esterno `<nome_zip>_metadata.json`.
 
 ## Installazione
 ```bash
 pip install .
-# oppure in sviluppo
+# oppure per sviluppo
 pip install -e .
 ```
 
-## Uso rapido
+## CLI rapida
 ```bash
 geoit3d-to-gltf examples/F184_Mirandola.zip \
   --output-dir output/F184_Mirandola \
   --iso-sheet examples/Metadata_Modelli3D_ISO.xlsx
 ```
+Opzioni:
+- `zip_path` (obbligatorio): ZIP GeoIT3D.
+- `--output-dir/-o`: cartella per GLB e metadata JSON.
+- `--iso-sheet`: Excel ISO/AGID opzionale.
+- `--keep-temp`: conserva la cartella temporanea.
 
-Argomenti/opzioni:
-- `zip_path`: ZIP del modello GeoIT3D (contenente `descriptor.json`, file `.ts`, CSV, ecc.).
-- `--output-dir/-o`: cartella dove salvare `<nome_zip>.glb` e `<nome_zip>_metadata.json`.
-- `--iso-sheet`: file Excel con foglio ISO/AGID (opzionale); se assente, i metadati ISO non vengono aggiunti.
-- `--keep-temp`: conserva la cartella temporanea di estrazione per debug.
+Output in `output/<nome_zip>/`:
+- `<nome_zip>.glb` con `asset.extras`.
+- `<nome_zip>_metadata.json` (stesso contenuto dei metadati).
 
-Output:
-- `<nome_zip>.glb`: scena glTF binaria con `asset.extras` popolato.
-- `<nome_zip>_metadata.json`: copia dei metadati in un JSON esterno.
+## Colab (anche se non sai Python)
+1. Clicca il badge Colab qui sopra.
+2. Menu `Runtime` → `Restart and run all` (oppure esegui le celle con ▶️).
+3. Quando richiesto, carica il tuo ZIP GeoIT3D (obbligatorio) e l’ISO `.xlsx` se ce l’hai.
+4. Il notebook converte e salva in `output/<nome_zip>/` i file GLB e metadata.
+5. Scarica dalla sidebar (icona cartella) con click destro → Download.
 
-## Uso del notebook (Colab)
-
-1. Clicca sul badge “Open in Colab” in alto. Si apre `GeoIT3D_to_GLTF.ipynb`.
-2. Menu `Runtime` → `Restart and run all` (o esegui le celle in ordine con ▶️).
-3. Quando il notebook chiede l’upload, carica il tuo ZIP GeoIT3D (obbligatorio) e, se ce l’hai, il file ISO/AGID `.xlsx` (opzionale).
-4. Il notebook installa il pacchetto, converte lo ZIP e scrive i risultati in `output/<nome_zip>/`:
-   - `<nome_zip>.glb`
-   - `<nome_zip>_metadata.json`
-5. Scarica i file dalla sidebar di Colab (icona cartella) o con click destro → Download.
-
-## Struttura attesa dello ZIP
+## ZIP atteso
 ```
 descriptor.json
 dem.ts
@@ -66,16 +58,15 @@ main_unit_attributes.csv
 ...
 ```
 
-## Note su metadati ISO/AGID
-- Il parser cerca il foglio `ISO_AGID_format` e la colonna dei valori che contiene “modello”.
-- Campi estratti: identifier, title, keywords, creation_date_time, autori, estensione spaziale (SRS, poligono XY, Zmin/Zmax), nominal resolution, localizzazione.
-- Eventuali modifiche alla struttura del foglio possono richiedere adattamenti in `src/geoit3d_to_gltf/iso_sheet.py`.
+## Metadati
+- Globali in `asset.extras` (standard glTF). Per BabylonJS puoi leggerli da console: `scene.metadata?.gltf?.asset?.extras`.
+- Mapping codici → etichette/URL via `examples/codelist.zip` + `examples/code_mapping.csv`.
+- ISO/AGID (opzionale): foglio `ISO_AGID_format` con colonna valori “modello”.
 
-## Sviluppo
-- Entry point CLI: `src/geoit3d_to_gltf/convert_zip_to_glb.py` (`geoit3d-to-gltf`).
-- Parser TSurf e costruzione scena: `src/geoit3d_to_gltf/tsurf_to_trimesh.py`.
-- Parser metadati ISO/AGID: `src/geoit3d_to_gltf/iso_sheet.py`.
-- Validazione placeholder (non usata): `src/geoit3d_to_gltf/validation.py`.
+## Dev
+- CLI: `src/geoit3d_to_gltf/convert_zip_to_glb.py`
+- Scene/attributi: `src/geoit3d_to_gltf/tsurf_to_trimesh.py`
+- ISO parser: `src/geoit3d_to_gltf/iso_sheet.py`
 
 ## Licenza
-MIT License (vedi `LICENSE`).
+MIT (vedi `LICENSE`).
